@@ -84,18 +84,8 @@ enum FileType {
 // ============================================
 // USUARIOS Y AUTENTICACIÓN
 // ============================================
-enum UserCompetitionStatus {
-  INTERESTED      // "Me interesa"
-  REGISTERED      // "Me he inscrito" (externamente)
-  CONFIRMED       // "Inscripción confirmada"
-  COMPLETED       // "He completado la carrera"
-  DNF             // "No terminé" (Did Not Finish)
-  DNS             // "No participé" (Did Not Start)
-}
-
 
 model User {
-  userCompetitions  UserCompetition[]
   id        String   @id @default(uuid()) @db.Uuid
   email     String   @unique
   username  String   @unique
@@ -153,7 +143,6 @@ model RefreshToken {
 // ============================================
 
 model Competition {
-  userCompetitions  UserCompetition[]
   id          String  @id @default(uuid()) @db.Uuid
   slug        String  @unique
   
@@ -445,38 +434,4 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@map("notifications")
-}
-
-model UserCompetition {
-  id                String                  @id @default(uuid()) @db.Uuid
-  userId            String                  @db.Uuid
-  competitionId     String                  @db.Uuid
-
-  // Estado
-  status            UserCompetitionStatus   @default(INTERESTED)
-
-  // Resultados personales (opcionales)
-  finishTime        String?                 // Formato: "HH:MM:SS"
-  finishTimeSeconds Int?                    // Para cálculos
-  position          Int?                    // Posición general
-  categoryPosition  Int?                    // Posición en categoría
-
-  // Notas y valoración personal
-  notes             String?                 @db.Text
-  personalRating    Int?                    // 1-5 estrellas
-
-  // Fechas
-  markedAt          DateTime                @default(now())
-  completedAt       DateTime?               // Fecha real de participación
-  updatedAt         DateTime                @updatedAt
-
-  // Relaciones
-  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  competition       Competition             @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, competitionId])
-  @@index([userId])
-  @@index([competitionId])
-  @@index([status])
-  @@map("user_competitions")
 }

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # WWTRAIL Backend API
 
 API REST completa para WWTRAIL - Plataforma mundial de competiciones de trail running.
@@ -402,3 +403,7 @@ WWTRAIL Development Team
 - ✅ Autenticación funcionando
 - ✅ CRUD de competiciones completo
 - ⏳ Próximo: Frontend + funcionalidades restantes
+=======
+# -wwtrail-backend
+Backend API para WWTRAIL - Portal de trail running con Node.js, Express, PostgreSQL y Prisma
+>>>>>>> 8a4ecc0f56c52d6b68cf35f80d082cc4685ab0be

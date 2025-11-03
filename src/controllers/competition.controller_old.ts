@@ -24,10 +24,7 @@ export class CompetitionController {
 
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.id;
-      const userRole = req.user?.role;
-
-      const result = await CompetitionService.findAll(req.query, userId, userRole);
+      const result = await CompetitionService.findAll(req.query);
 
       res.status(200).json({
         status: 'success',

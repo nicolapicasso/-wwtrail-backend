@@ -20,7 +20,6 @@ import resultRoutes from './routes/result.routes';
 import reviewRoutes from './routes/review.routes';
 import translationRoutes from './routes/translation.routes';
 import userCompetitionRoutes from './routes/user-competition.routes';
-import adminRoutes from './routes/admin.routes';
 
 
 dotenv.config();
@@ -90,8 +89,7 @@ apiRouter.use('/reviews', reviewRoutes);
 apiRouter.use('/translations', translationRoutes);
 
 app.use(`/api/${API_VERSION}`, apiRouter);
-app.use(`/api/${API_VERSION}`, userCompetitionRoutes);
-app.use(`/api/${API_VERSION}`, adminRoutes); 
+app.use(`/api/${API_VERSION}`, userCompetitionRoutes); 
 
 // ============================================
 // ERROR HANDLERS
