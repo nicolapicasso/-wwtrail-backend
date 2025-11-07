@@ -23,7 +23,7 @@ import userCompetitionRoutes from './routes/user-competition.routes';
 import adminRoutes from './routes/admin.routes';
 import eventRoutes from './routes/event.routes';
 import editionRoutes from './routes/edition.routes';
-import testRoutes from './routes/test.routes';
+//import testRoutes from './routes/test.routes';
 import meCompetitionsRoutes from './routes/me-competitions.routes';
 
 dotenv.config();
@@ -113,7 +113,7 @@ app.use('/api/v2/events', eventRoutes);
 app.use('/api/v2/competitions', competitionRoutes);
 
 app.use('/api/v2/editions', editionRoutes);
-app.use('/api/v2/test', testRoutes);
+//app.use('/api/v2/test', testRoutes);
 
 // ============================================
 // ERROR HANDLERS
