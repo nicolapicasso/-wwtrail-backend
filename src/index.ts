@@ -23,6 +23,8 @@ import userCompetitionRoutes from './routes/user-competition.routes';
 import adminRoutes from './routes/admin.routes';
 import eventRoutes from './routes/event.routes';
 import editionRoutes from './routes/edition.routes';
+import testRoutes from './routes/test.routes';
+import meCompetitionsRoutes from './routes/me-competitions.routes';
 
 dotenv.config();
 
@@ -59,9 +61,13 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Rate limiting - DESACTIVADO en desarrollo para evitar error 429
-// Descomentar en producción para proteger la API
-// app.use(apiLimiter);
+// ✅ CORREGIDO: Rate limiting con control por entorno
+if (process.env.NODE_ENV === 'production') {
+  app.use(apiLimiter);
+  logger.info('✅ Rate limiter ACTIVADO (producción)');
+} else {
+  logger.info('⚠️  Rate limiter DESACTIVADO (desarrollo)');
+}
 
 // ============================================
 // HEALTH CHECK
@@ -94,14 +100,20 @@ apiRouter.use('/translations', translationRoutes);
 app.use(`/api/${API_VERSION}`, apiRouter);
 app.use(`/api/${API_VERSION}`, userCompetitionRoutes);
 app.use(`/api/${API_VERSION}`, adminRoutes);
+app.use('/api/v1/me/competitions', meCompetitionsRoutes);
 
 // ============================================
 // API ROUTES V2 (NEW)
 // ============================================
 
 app.use('/api/v2/events', eventRoutes);
+
+// ✅ CORREGIDO: Competitions v2 - Ruta única sin duplicación
+// El competitionRoutes actual es compatible con v2
 app.use('/api/v2/competitions', competitionRoutes);
+
 app.use('/api/v2/editions', editionRoutes);
+app.use('/api/v2/test', testRoutes);
 
 // ============================================
 // ERROR HANDLERS
@@ -118,7 +130,7 @@ const startServer = async () => {
   try {
     app.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
-      logger.info(`📝 Environment: ${process.env.NODE_ENV}`);
+      logger.info(`🔍 Environment: ${process.env.NODE_ENV}`);
       logger.info(`🔗 API v1: http://localhost:${PORT}/api/${API_VERSION}`);
       logger.info(`🔗 API v2: http://localhost:${PORT}/api/v2`);
       logger.info(`💚 Health check: http://localhost:${PORT}/health`);
