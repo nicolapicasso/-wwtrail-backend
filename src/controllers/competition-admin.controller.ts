@@ -2,24 +2,45 @@
 
 import { Request, Response, NextFunction } from 'express';
 import CompetitionAdminService from '../services/competition-admin.service';
+import { UserRole } from '@prisma/client';
+
+// ============================================
+// INTERFACES
+// ============================================
+
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: UserRole;
+  };
+}
+
+// ============================================
+// COMPETITION ADMIN CONTROLLER
+// ============================================
 
 class CompetitionAdminController {
   /**
-   * GET /api/v1/admin/competitions/pending
-   * Obtener competiciones pendientes de aprobación
+   * @route   GET /api/v1/admin/competitions/pending
+   * @desc    Obtener competiciones pendientes de aprobación
+   * @access  Admin
    */
   async getPendingCompetitions(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page = '1', limit = '20' } = req.query;
+      const options = {
+        page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
+        sortBy: (req.query.sortBy as any) || 'createdAt',
+        sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
+      };
 
-      const result = await CompetitionAdminService.getPendingCompetitions(
-        parseInt(page as string, 10),
-        parseInt(limit as string, 10)
-      );
+      const result = await CompetitionAdminService.getPendingCompetitions(options);
 
       res.status(200).json({
-        status: 'success',
-        ...result,
+        success: true,
+        data: result.competitions,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);
@@ -27,108 +48,154 @@ class CompetitionAdminController {
   }
 
   /**
-   * POST /api/v1/admin/competitions/:id/approve
-   * Aprobar una competición
+   * @route   POST /api/v1/admin/competitions/:id/approve
+   * @desc    Aprobar una competición
+   * @access  Admin
+   * MEJORADO: Ahora acepta adminNotes opcional del body
    */
-  async approveCompetition(req: Request, res: Response, next: NextFunction) {
+  async approveCompetition(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+      const { adminNotes } = req.body; // ← NUEVO: Extraer adminNotes del body
       const adminId = req.user!.id;
-      const { adminNotes } = req.body;
 
       const competition = await CompetitionAdminService.approveCompetition(
-        id,
+        id, 
         adminId,
-        { adminNotes }
+        adminNotes // ← NUEVO: Pasar adminNotes al service (tercer parámetro opcional)
       );
 
       res.status(200).json({
-        status: 'success',
+        success: true,
         message: 'Competition approved successfully',
         data: competition,
       });
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Competition not found') {
+          res.status(404).json({
+            success: false,
+            message: 'Competition not found',
+          });
+          return;
+        }
+        if (error.message === 'Competition is not in DRAFT status') {
+          res.status(400).json({
+            success: false,
+            message: 'Competition is not in DRAFT status',
+          });
+          return;
+        }
+      }
       next(error);
     }
   }
 
   /**
-   * POST /api/v1/admin/competitions/:id/reject
-   * Rechazar una competición
+   * @route   POST /api/v1/admin/competitions/:id/reject
+   * @desc    Rechazar una competición
+   * @access  Admin
    */
-  async rejectCompetition(req: Request, res: Response, next: NextFunction) {
+  async rejectCompetition(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+      const { reason } = req.body;
       const adminId = req.user!.id;
-      const { rejectionReason } = req.body;
-
-      if (!rejectionReason) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Rejection reason is required',
-        });
-      }
 
       const competition = await CompetitionAdminService.rejectCompetition(
         id,
         adminId,
-        { rejectionReason }
+        reason
       );
 
       res.status(200).json({
-        status: 'success',
-        message: 'Competition rejected',
+        success: true,
+        message: 'Competition rejected successfully',
         data: competition,
       });
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Competition not found') {
+          res.status(404).json({
+            success: false,
+            message: 'Competition not found',
+          });
+          return;
+        }
+        if (error.message === 'Competition is not in DRAFT status') {
+          res.status(400).json({
+            success: false,
+            message: 'Competition is not in DRAFT status',
+          });
+          return;
+        }
+      }
       next(error);
     }
   }
 
   /**
-   * PATCH /api/v1/admin/competitions/:id/status
-   * Cambiar status de una competición
+   * @route   PATCH /api/v1/admin/competitions/:id/status
+   * @desc    Cambiar status de una competición
+   * @access  Admin
    */
-  async updateStatus(req: Request, res: Response, next: NextFunction) {
+  async updateStatus(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
       const { status } = req.body;
       const adminId = req.user!.id;
 
-      if (!status) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Status is required',
-        });
-      }
-
-      const competition = await CompetitionAdminService.updateCompetitionStatus(
+      const competition = await CompetitionAdminService.updateStatus(
         id,
         status,
         adminId
       );
 
       res.status(200).json({
-        status: 'success',
-        message: 'Competition status updated',
+        success: true,
+        message: 'Competition status updated successfully',
         data: competition,
       });
     } catch (error) {
+      if (error instanceof Error && error.message === 'Competition not found') {
+        res.status(404).json({
+          success: false,
+          message: 'Competition not found',
+        });
+        return;
+      }
       next(error);
     }
   }
 
   /**
-   * GET /api/v1/admin/stats
-   * Obtener estadísticas del dashboard admin
+   * @route   GET /api/v1/organizer/competitions
+   * @desc    Obtener mis competiciones como organizador
+   * @access  Organizer, Admin
    */
-  async getStats(req: Request, res: Response, next: NextFunction) {
+  async getMyCompetitions(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const stats = await CompetitionAdminService.getAdminStats();
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+
+      const options = {
+        page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
+        status: req.query.status as any,
+        sortBy: (req.query.sortBy as any) || 'createdAt',
+        sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc',
+      };
+
+      const result = await CompetitionAdminService.getMyCompetitions(
+        userId,
+        userRole,
+        options
+      );
 
       res.status(200).json({
-        status: 'success',
-        data: stats,
+        success: true,
+        data: result.competitions,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);
@@ -136,23 +203,17 @@ class CompetitionAdminController {
   }
 
   /**
-   * GET /api/v1/organizer/competitions
-   * Obtener competiciones del organizador actual
+   * @route   GET /api/v1/admin/competitions/stats
+   * @desc    Obtener estadísticas de competiciones
+   * @access  Admin
    */
-  async getMyCompetitions(req: Request, res: Response, next: NextFunction) {
+  async getStats(_req: Request, res: Response, next: NextFunction) {
     try {
-      const organizerId = req.user!.id;
-      const { page = '1', limit = '20' } = req.query;
-
-      const result = await CompetitionAdminService.getOrganizerCompetitions(
-        organizerId,
-        parseInt(page as string, 10),
-        parseInt(limit as string, 10)
-      );
+      const stats = await CompetitionAdminService.getStats();
 
       res.status(200).json({
-        status: 'success',
-        ...result,
+        success: true,
+        data: stats,
       });
     } catch (error) {
       next(error);

@@ -177,7 +177,6 @@ export class EditionService {
       competitionId,
     };
 
-
     const editions = await prisma.edition.findMany({
       where,
       orderBy: {
@@ -191,13 +190,7 @@ export class EditionService {
             slug: true,
           },
         },
-        _count: {
-          select: {
-            participants: true,
-            results: true,
-            reviews: true,
-          },
-        },
+        // ✅ _count eliminado - campos participants/results/reviews no existen en schema
       },
     });
 
@@ -224,13 +217,7 @@ export class EditionService {
             },
           },
         },
-        _count: {
-          select: {
-            participants: true,
-            results: true,
-            reviews: true,
-          },
-        },
+        // ✅ _count eliminado - campos participants/results/reviews no existen en schema
       },
     });
 
@@ -261,13 +248,7 @@ export class EditionService {
             },
           },
         },
-        _count: {
-          select: {
-            participants: true,
-            results: true,
-            reviews: true,
-          },
-        },
+        // ✅ _count eliminado - campos participants/results/reviews no existen en schema
       },
     });
 
@@ -293,13 +274,7 @@ export class EditionService {
             event: true,
           },
         },
-        _count: {
-          select: {
-            participants: true,
-            results: true,
-            reviews: true,
-          },
-        },
+        // ✅ _count eliminado - campos participants/results/reviews no existen en schema
       },
     });
 
@@ -441,12 +416,7 @@ export class EditionService {
             },
           },
         },
-        _count: {
-          select: {
-            participants: true,
-            results: true,
-          },
-        },
+        // ✅ _count eliminado temporalmente - usar conteo manual si se necesita
       },
     });
 
@@ -462,13 +432,6 @@ export class EditionService {
 
     if (user?.role !== 'ADMIN' && existing.competition.event.organizerId !== userId) {
       throw new Error('Unauthorized');
-    }
-
-    // Advertir si tiene datos
-    if (existing._count.participants > 0 || existing._count.results > 0) {
-      logger.warn(
-        `Deleting edition ${id} with ${existing._count.participants} participants and ${existing._count.results} results`
-      );
     }
 
     // Eliminar (cascade)
@@ -494,19 +457,18 @@ export class EditionService {
             name: true,
           },
         },
-        _count: {
-          select: {
-            participants: true,
-            results: true,
-            reviews: true,
-          },
-        },
+        // ✅ _count eliminado - usar conteo manual si se necesita
       },
     });
 
     if (!edition) {
       throw new Error('Edition not found');
     }
+
+    // ✅ Conteo manual de reviews (si existen en el schema)
+    const reviewCount = await prisma.review.count({
+      where: { editionId: id },
+    });
 
     // Calcular rating promedio
     const reviews = await prisma.review.findMany({
@@ -522,9 +484,9 @@ export class EditionService {
       id: edition.id,
       competitionName: edition.competition.name,
       year: edition.year,
-      totalParticipants: edition._count.participants,
-      totalResults: edition._count.results,
-      totalReviews: edition._count.reviews,
+      totalParticipants: 0, // ✅ TODO: Implementar cuando exista la relación
+      totalResults: 0, // ✅ TODO: Implementar cuando exista la relación
+      totalReviews: reviewCount,
       averageRating,
       currentParticipants: edition.currentParticipants,
       maxParticipants: edition.maxParticipants,

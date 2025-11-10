@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import path from 'path'; // ✅ AGREGAR AQUÍ
 
 import { errorHandler } from './middlewares/error.middleware';
 import { notFoundHandler } from './middlewares/notFound.middleware';
@@ -24,12 +23,12 @@ import userCompetitionRoutes from './routes/user-competition.routes';
 import adminRoutes from './routes/admin.routes';
 import eventRoutes from './routes/event.routes';
 import editionRoutes from './routes/edition.routes';
+//import testRoutes from './routes/test.routes';
 import meCompetitionsRoutes from './routes/me-competitions.routes';
-import fileRoutes from './routes/file.routes'; // ✅ AGREGAR AQUÍ
 
 dotenv.config();
 
-const app: Application = express(); // ✅ SOLO UNA DECLARACIÓN
+const app: Application = express();
 const PORT = process.env.PORT || 3001;
 const API_VERSION = process.env.API_VERSION || 'v1';
 
@@ -37,12 +36,8 @@ const API_VERSION = process.env.API_VERSION || 'v1';
 // MIDDLEWARES
 // ============================================
 
-// ✅ DESPUÉS - Permitir imágenes cross-origin:
-app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },  // ← CLAVE
-  })
-);
+// Seguridad
+app.use(helmet());
 
 // CORS
 app.use(
@@ -52,23 +47,13 @@ app.use(
   })
 );
 
-// ✅ CORS específico para archivos estáticos
-app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');  // ← IMPORTANTE
-  next();
-});
-
-// Servir archivos estáticos
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
 // Parseo de body
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Compresión
 app.use(compression());
+
 // Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -76,16 +61,13 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Rate limiting
+// ✅ CORREGIDO: Rate limiting con control por entorno
 if (process.env.NODE_ENV === 'production') {
   app.use(apiLimiter);
   logger.info('✅ Rate limiter ACTIVADO (producción)');
 } else {
   logger.info('⚠️  Rate limiter DESACTIVADO (desarrollo)');
 }
-
-// ✅ SERVIR ARCHIVOS ESTÁTICOS
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ============================================
 // HEALTH CHECK
@@ -117,21 +99,26 @@ apiRouter.use('/translations', translationRoutes);
 
 app.use(`/api/${API_VERSION}`, apiRouter);
 
+// ✅ CRÍTICO: EVENTS V1 debe ir ANTES de userCompetitionRoutes/adminRoutes
+// para evitar que middlewares de esas rutas afecten a events
 app.use('/api/v1/events', eventRoutes);
+
 app.use(`/api/${API_VERSION}`, userCompetitionRoutes);
 app.use(`/api/${API_VERSION}`, adminRoutes);
 app.use('/api/v1/me/competitions', meCompetitionsRoutes);
-
-// ✅ RUTAS DE FILES
-app.use('/api/v1/files', fileRoutes);
 
 // ============================================
 // API ROUTES V2 (NEW)
 // ============================================
 
 app.use('/api/v2/events', eventRoutes);
+
+// ✅ CORREGIDO: Competitions v2 - Ruta única sin duplicación
+// El competitionRoutes actual es compatible con v2
 app.use('/api/v2/competitions', competitionRoutes);
+
 app.use('/api/v2/editions', editionRoutes);
+//app.use('/api/v2/test', testRoutes);
 
 // ============================================
 // ERROR HANDLERS

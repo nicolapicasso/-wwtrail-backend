@@ -21,7 +21,7 @@ interface CreateEventInput {
   coverImage?: string;
   images?: string[];
   firstEditionYear?: number;
-  isHighlighted?: boolean;
+  featured?: boolean;
   originalLanguage?: string;
   organizerId: string;
 }
@@ -42,30 +42,76 @@ interface UpdateEventInput {
   coverImage?: string;
   images?: string[];
   firstEditionYear?: number;
-  isHighlighted?: boolean;
-  status?: EventStatus;
+  featured?: boolean;
   status?: EventStatus;
 }
 
 interface EventFilters {
-  page?: number | string;  // ✅ Puede venir como string desde query params
-  limit?: number | string; // ✅ Puede venir como string desde query params
+  page?: number | string;
+  limit?: number | string;
   search?: string;
   country?: string;
-  isHighlighted?: boolean;
+  featured?: boolean;
   status?: EventStatus;
   sortBy?: 'name' | 'createdAt' | 'viewCount' | 'firstEditionYear';
   sortOrder?: 'asc' | 'desc';
 }
 
 export class EventService {
+
+  /**
+   * ✅ Helper: Extraer coordenadas de PostGIS para uno o varios eventos
+   * IMPORTANTE: Como location es Unsupported, Prisma lo ignora (undefined).
+   * Por eso siempre intentamos extraer coordenadas para TODOS los eventos.
+   */
+ private static async enrichWithCoordinates(events: any | any[]): Promise<any> {    
+    const isArray = Array.isArray(events);
+    const eventList = isArray ? events : [events];
+    
+    if (eventList.length === 0) {
+
+      return events;
+    }
+    
+    try {
+      const eventIds = eventList.map(e => e.id);
+            
+const coordinates = await prisma.$queryRawUnsafe<Array<{ id: string; lat: number; lon: number }>>(
+  `SELECT id::text, ST_Y(location::geometry) as lat, ST_X(location::geometry) as lon 
+   FROM events 
+   WHERE id::text = ANY($1)
+   AND location IS NOT NULL`,
+  eventIds
+);
+      
+      
+      const coordMap = new Map(coordinates.map(c => [c.id, { lat: c.lat, lon: c.lon }]));
+      
+      eventList.forEach(event => {
+        const coords = coordMap.get(event.id);
+        if (coords) {
+          event.latitude = coords.lat;
+          event.longitude = coords.lon;
+        }
+      });
+      
+      
+    } catch (error) {
+    }
+    
+    return events;
+  }
+
   /**
    * Obtener eventos del usuario (solo los suyos)
    * ADMIN ve todos, ORGANIZER solo los suyos
    */
   static async getMyEvents(userId: string, userRole: string, filters: any = {}) {
     try {
-      const { page = 1, limit = 20, status } = filters;
+      // ✅ CORREGIDO: Convertir a números explícitamente
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 20;
+      const status = filters.status;
       const skip = (page - 1) * limit;
 
       // Base where clause
@@ -107,10 +153,13 @@ export class EventService {
         prisma.event.count({ where }),
       ]);
 
+      // ✅ Enriquecer con coordenadas PostGIS
+      const enrichedEvents = await this.enrichWithCoordinates(events);
+
       logger.info(`Retrieved ${events.length} events for user ${userId}`);
 
       return {
-        data: events,
+        data: enrichedEvents,
         pagination: {
           page,
           limit,
@@ -120,129 +169,6 @@ export class EventService {
       };
     } catch (error) {
       logger.error(`Error getting user events: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Obtener eventos pendientes de aprobación (solo ADMIN)
-   */
-  static async getPendingEvents(filters: any = {}) {
-    try {
-      const { page = 1, limit = 20 } = filters;
-      const skip = (page - 1) * limit;
-
-      const [events, total] = await Promise.all([
-        prisma.event.findMany({
-          where: { status: 'DRAFT' },
-          skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            organizer: {
-              select: {
-                id: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            _count: {
-              select: {
-                competitions: true,
-              },
-            },
-          },
-        }),
-        prisma.event.count({ where: { status: 'DRAFT' } }),
-      ]);
-
-      logger.info(`Retrieved ${events.length} pending events`);
-
-      return {
-        data: events,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit),
-        },
-      };
-    } catch (error) {
-      logger.error(`Error getting pending events: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Aprobar evento (cambiar status a PUBLISHED)
-   * Solo ADMIN
-   */
-  static async approveEvent(eventId: string, adminId: string) {
-    try {
-      const event = await prisma.event.update({
-        where: { id: eventId },
-        data: { 
-          status: 'PUBLISHED',
-          updatedAt: new Date(),
-        },
-        include: {
-          organizer: {
-            select: {
-              id: true,
-              username: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      // Invalidar caché
-      await cache.del('events:list');
-      await cache.del(`event:${eventId}`);
-
-      logger.info(`Event ${eventId} approved by admin ${adminId}`);
-
-      return event;
-    } catch (error) {
-      logger.error(`Error approving event: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Rechazar evento (cambiar status a REJECTED con razón)
-   * Solo ADMIN
-   */
-  static async rejectEvent(eventId: string, adminId: string, reason?: string) {
-    try {
-      const event = await prisma.event.update({
-        where: { id: eventId },
-        data: { 
-          status: 'REJECTED',
-          updatedAt: new Date(),
-        },
-        include: {
-          organizer: {
-            select: {
-              id: true,
-              username: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      logger.warn(`Event ${eventId} rejected by admin ${adminId}. Reason: ${reason || 'No reason provided'}`);
-
-      return event;
-    } catch (error) {
-      logger.error(`Error rejecting event: ${error}`);
       throw error;
     }
   }
@@ -258,7 +184,7 @@ export class EventService {
         prisma.event.count({ where }),
         prisma.event.count({ where: { ...where, status: 'PUBLISHED' } }),
         prisma.event.count({ where: { ...where, status: 'DRAFT' } }),
-        prisma.event.count({ where: { ...where, status: 'REJECTED' } }),
+        prisma.event.count({ where: { ...where, status: 'CANCELLED' } }),
       ]);
 
       const stats = {
@@ -282,10 +208,6 @@ export class EventService {
   // ===================================
 
   /**
-   * Crear un nuevo evento
-   */
-  
-  /**
    * Crear evento con lógica de roles
    * - ADMIN: crea con status PUBLISHED
    * - ORGANIZER: crea con status DRAFT (pendiente aprobación)
@@ -296,27 +218,35 @@ export class EventService {
       const status = userRole === 'ADMIN' ? 'PUBLISHED' : 'DRAFT';
 
       // Generar slug único
-      const slug = await this.generateUniqueSlug(data.name);
+      const slug = await generateUniqueSlug(data.name, prisma.event);
 
-      // Preparar coordenadas PostGIS si existen
-      let locationData = {};
-      if (data.latitude && data.longitude) {
-        // Crear el evento primero sin location
-        locationData = {
-          latitude: data.latitude,
-          longitude: data.longitude,
-        };
-      }
+      // Preparar datos mapeando correctamente los campos del schema
+      const eventData: any = {
+        name: data.name,
+        slug,
+        city: data.city,
+        country: data.country,
+        organizerId,
+        status,
+        firstEditionYear: data.firstEditionYear,
+        featured: data.featured || false,
+      };
+
+      // Campos opcionales que SÍ existen en el schema
+      if (data.description) eventData.description = data.description;
+      if (data.website) eventData.website = data.website;
+      if (data.email) eventData.email = data.email;
+      if (data.phone) eventData.phone = data.phone;
+      if (data.logoUrl) eventData.logoUrl = data.logoUrl;
+      if (data.logo) eventData.logo = data.logo;
+      if (data.coverImageUrl) eventData.coverImageUrl = data.coverImageUrl;
+      if (data.coverImage) eventData.coverImage = data.coverImage;
+      if (data.typicalMonth) eventData.typicalMonth = data.typicalMonth;
+      if (data.gallery && Array.isArray(data.gallery)) eventData.gallery = data.gallery;
 
       // Crear evento
       const event = await prisma.event.create({
-        data: {
-          ...data,
-          slug,
-          organizerId,
-          status, // ✅ Asignar status según rol
-          ...locationData,
-        },
+        data: eventData,
         include: {
           organizer: {
             select: {
@@ -329,35 +259,72 @@ export class EventService {
         },
       });
 
-      // Si tiene coordenadas, actualizar con PostGIS
+      // ✅ Si tiene coordenadas, actualizar location con PostGIS
       if (data.latitude && data.longitude) {
-        await prisma.$executeRaw`
-          UPDATE events
-          SET location = ST_SetSRID(ST_MakePoint(${data.longitude}, ${data.latitude}), 4326)
-          WHERE id = ${event.id}::uuid
-        `;
+        try {
+          const lat = Number(data.latitude);
+          const lon = Number(data.longitude);
+          
+          await prisma.$executeRawUnsafe(
+            'UPDATE events SET location = ST_SetSRID(ST_MakePoint($1, $2), 4326) WHERE id = $3',
+            lon,
+            lat,
+            event.id
+          );
+          
+          logger.info(`✅ Location added to event ${event.id}: (${lat}, ${lon})`);
+        } catch (geoError) {
+          logger.warn(`⚠️ Could not set location for event ${event.id}:`, geoError);
+        }
       }
 
       // Invalidar caché
       await cache.del('events:list');
 
-      logger.info(`Event created: ${event.id} by user ${organizerId} with status ${status}`);
+      logger.info(`✅ Event created: ${event.id} by user ${organizerId} with status ${status}`);
       return event;
     } catch (error) {
-      logger.error(`Error creating event: ${error}`);
+      logger.error(`❌ Error creating event: ${error}`);
       throw error;
     }
   }
+
+  /**
+   * Verificar si un slug está disponible
+   */
+  static async isSlugAvailable(slug: string, excludeId?: string): Promise<boolean> {
+    try {
+      const where: any = { slug };
+      
+      if (excludeId) {
+        where.id = { not: excludeId };
+      }
+
+      const existing = await prisma.event.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+
+      if (existing && existing.id !== excludeId) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      logger.error(`Error checking slug availability: ${error}`);
+      return false;
+    }
+  }
+
   /**
    * Listar eventos con filtros y paginación
    */
   static async findAll(filters: EventFilters = {}) {
-    // ✅ CORRECCIÓN: Convertir explícitamente a números
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const search = filters.search;
     const country = filters.country;
-    const isHighlighted = filters.isHighlighted;
+    const featured = filters.featured;
     const status = filters.status;
     const sortBy = filters.sortBy || 'createdAt';
     const sortOrder = filters.sortOrder || 'desc';
@@ -388,8 +355,10 @@ export class EventService {
       where.country = country;
     }
 
-    if (isHighlighted !== undefined) {
-      where.isHighlighted = isHighlighted;
+    if (featured !== undefined && featured !== null && featured !== '') {
+      const isFeatured = featured === 'true' || featured === true;
+      where.featured = isFeatured;
+
     }
 
     if (status) {
@@ -401,7 +370,7 @@ export class EventService {
       prisma.event.findMany({
         where,
         skip,
-        take: limit, // ✅ Ahora es número
+        take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
           organizer: {
@@ -422,8 +391,11 @@ export class EventService {
       prisma.event.count({ where }),
     ]);
 
+    // ✅ Enriquecer con coordenadas PostGIS
+    const enrichedEvents = await this.enrichWithCoordinates(events);
+
     const result = {
-      data: events,
+      data: enrichedEvents,
       pagination: {
         page,
         limit,
@@ -473,7 +445,6 @@ export class EventService {
             },
           },
         },
-        
         _count: {
           select: {
             competitions: true,
@@ -486,6 +457,9 @@ export class EventService {
       throw new Error('Event not found');
     }
 
+    // ✅ Enriquecer con coordenadas PostGIS
+    await this.enrichWithCoordinates(event);
+
     // Incrementar viewCount
     await prisma.event.update({
       where: { id },
@@ -497,6 +471,8 @@ export class EventService {
 
     return event;
   }
+
+
 
   /**
    * Obtener evento por slug
@@ -533,18 +509,21 @@ export class EventService {
             },
           },
         },
-        
         _count: {
           select: {
             competitions: true,
           },
         },
       },
+
     });
 
     if (!event) {
       throw new Error('Event not found');
     }
+
+    // ✅ Enriquecer con coordenadas PostGIS
+    await this.enrichWithCoordinates(event);
 
     // Incrementar viewCount
     await prisma.event.update({
@@ -557,6 +536,7 @@ export class EventService {
 
     return event;
   }
+
 
   /**
    * Actualizar evento
@@ -593,6 +573,25 @@ export class EventService {
         },
       },
     });
+
+    // Si se actualizan coordenadas, actualizar PostGIS
+    if (data.latitude !== undefined && data.longitude !== undefined) {
+      try {
+        const lat = Number(data.latitude);
+        const lon = Number(data.longitude);
+        
+        await prisma.$executeRawUnsafe(
+          'UPDATE events SET location = ST_SetSRID(ST_MakePoint($1, $2), 4326) WHERE id = $3',
+          lon,
+          lat,
+          id
+        );
+        
+        logger.info(`✅ Location updated for event ${id}: (${lat}, ${lon})`);
+      } catch (geoError) {
+        logger.warn(`⚠️ Could not update location for event ${id}:`, geoError);
+      }
+    }
 
     // Invalidar caché
     await cache.del(`event:${id}`);
@@ -663,7 +662,7 @@ export class EventService {
     const events = await prisma.$queryRaw`
       SELECT 
         id, slug, name, city, country, "coverImage",
-        "isHighlighted", "viewCount",
+        "featured", "viewCount",
         similarity(name, ${query}) + 
         similarity(COALESCE(city, ''), ${query}) + 
         similarity(COALESCE(description, ''), ${query}) as relevance
@@ -697,7 +696,9 @@ export class EventService {
     // Query PostGIS
     const events = await prisma.$queryRaw`
       SELECT 
-        id, name, slug, city, country, latitude, longitude,
+        id, name, slug, city, country,
+        ST_X(location::geometry) as longitude,
+        ST_Y(location::geometry) as latitude,
         ST_Distance(
           location::geography,
           ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography
@@ -736,9 +737,7 @@ export class EventService {
 
     const events = await prisma.event.findMany({
       where: {
-        
         status: EventStatus.PUBLISHED,
-        
       },
       take: limit,
       orderBy: [
@@ -770,7 +769,6 @@ export class EventService {
    * Eventos por país
    */
   static async getByCountry(country: string, options: { page?: number | string; limit?: number | string } = {}) {
-    // ✅ CORRECCIÓN: Convertir explícitamente a números
     const page = Number(options.page) || 1;
     const limit = Number(options.limit) || 20;
     const skip = (page - 1) * limit;
@@ -790,7 +788,7 @@ export class EventService {
           status: EventStatus.PUBLISHED,
         },
         skip,
-        take: limit, // ✅ Ahora es número
+        take: limit,
         orderBy: { viewCount: 'desc' },
         include: {
           organizer: {
@@ -814,8 +812,11 @@ export class EventService {
       }),
     ]);
 
+    // ✅ Enriquecer con coordenadas PostGIS
+    const enrichedEvents = await this.enrichWithCoordinates(events);
+
     const result = {
-      data: events,
+      data: enrichedEvents,
       pagination: {
         page,
         limit,
@@ -874,7 +875,7 @@ export class EventService {
       totalParticipants: Number(participants[0]?.total || 0),
       viewCount: event.viewCount,
       firstEditionYear: event.firstEditionYear,
-      isHighlighted: event.isHighlighted,
+      featured: event.featured,
       status: event.status,
     };
   }
