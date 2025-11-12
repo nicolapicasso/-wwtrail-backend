@@ -14,6 +14,7 @@ import {
 import { editionRatingsRouter } from './editionRating.routes';
 import { editionPodiumsRouter, editionChronicleRouter } from './editionPodium.routes';
 import { editionPhotosRouter } from './editionPhoto.routes';
+import { editionWeatherRouter } from './weather.routes';
 
 const router = Router();
 console.log('✅ Edition routes file loaded!');
@@ -125,6 +126,13 @@ router.use('/:editionId/chronicle', editionChronicleRouter);
 // GET  /api/v2/editions/:editionId/photos
 // POST /api/v2/editions/:editionId/photos/reorder
 router.use('/:editionId/photos', editionPhotosRouter);
+
+// ===================================
+// RUTAS ANIDADAS - WEATHER
+// ===================================
+// GET  /api/v2/editions/:editionId/weather
+// POST /api/v2/editions/:editionId/weather/fetch
+router.use('/:editionId/weather', editionWeatherRouter);
 
 // GET /api/v2/editions/:id - Por ID
 router.get(

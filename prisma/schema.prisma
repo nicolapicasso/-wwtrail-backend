@@ -337,6 +337,10 @@ model Edition {
   // ✅ NUEVOS CAMPOS - FASE 2: Podios + Crónica
   chronicle String? @db.Text
 
+  // ✅ NUEVOS CAMPOS - FASE 4: Meteo Automático
+  weather        Json?    // Datos climáticos históricos
+  weatherFetched Boolean @default(false)
+
   // Relaciones
   competition  Competition       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   userEditions UserEdition[]
