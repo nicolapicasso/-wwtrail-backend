@@ -334,11 +334,15 @@ model Edition {
   avgRating    Float? // Promedio de los 7 criterios
   totalRatings Int    @default(0)
 
+  // ✅ NUEVOS CAMPOS - FASE 2: Podios + Crónica
+  chronicle String? @db.Text
+
   // Relaciones
-  competition  Competition     @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competition  Competition       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   userEditions UserEdition[]
   blogPosts    Post[]
-  ratings      EditionRating[] @relation("EditionRatings")
+  ratings      EditionRating[]   @relation("EditionRatings")
+  podiums      EditionPodium[]   @relation("EditionPodiums")
 
   viewCount Int     @default(0)
   featured  Boolean @default(false)
@@ -771,4 +775,36 @@ model EditionRating {
   @@index([editionId])
   @@index([userId])
   @@map("edition_ratings")
+}
+
+// ===================================
+// EDITION PODIUMS - FASE 2
+// ===================================
+
+model EditionPodium {
+  id String @id @default(uuid())
+
+  editionId String
+  edition   Edition @relation("EditionPodiums", fields: [editionId], references: [id], onDelete: Cascade)
+
+  type         PodiumType
+  categoryName String?    @db.VarChar(100)
+
+  firstPlace  String  @db.VarChar(200)
+  firstTime   String? @db.VarChar(20)
+
+  secondPlace String? @db.VarChar(200)
+  secondTime  String? @db.VarChar(20)
+
+  thirdPlace String? @db.VarChar(200)
+  thirdTime  String? @db.VarChar(20)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([editionId])
+  @@index([type])
+  @@map("edition_podiums")
 }

@@ -28,6 +28,7 @@ import meCompetitionsRoutes from './routes/me-competitions.routes';
 import fileRoutes from './routes/file.routes'; // ✅ AGREGAR AQUÍ
 import editionRatingRoutes from './routes/editionRating.routes';
 import catalogRoutes from './routes/catalog.routes';
+import editionPodiumRoutes from './routes/editionPodium.routes';
 
 dotenv.config();
 
@@ -136,6 +137,7 @@ app.use('/api/v2/competitions', competitionRoutes);
 app.use('/api/v2/editions', editionRoutes);
 app.use('/api/v2/ratings', editionRatingRoutes);
 app.use('/api/v2/me/ratings', editionRatingRoutes);
+app.use('/api/v2/podiums', editionPodiumRoutes);
 app.use('/api/v2', catalogRoutes);
 
 // ============================================

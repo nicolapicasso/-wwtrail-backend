@@ -12,6 +12,7 @@ import {
   createBulkEditionsSchema,
 } from '../schemas/edition.schema';
 import { editionRatingsRouter } from './editionRating.routes';
+import { editionPodiumsRouter, editionChronicleRouter } from './editionPodium.routes';
 
 const router = Router();
 console.log('✅ Edition routes file loaded!');
@@ -101,6 +102,20 @@ router.get(
 // POST /api/v2/editions/:editionId/ratings
 // GET  /api/v2/editions/:editionId/ratings
 router.use('/:editionId/ratings', editionRatingsRouter);
+
+// ===================================
+// RUTAS ANIDADAS - PODIUMS
+// ===================================
+// POST /api/v2/editions/:editionId/podiums
+// GET  /api/v2/editions/:editionId/podiums
+router.use('/:editionId/podiums', editionPodiumsRouter);
+
+// ===================================
+// RUTAS ANIDADAS - CHRONICLE
+// ===================================
+// PUT /api/v2/editions/:editionId/chronicle
+// GET /api/v2/editions/:editionId/chronicle
+router.use('/:editionId/chronicle', editionChronicleRouter);
 
 // GET /api/v2/editions/:id - Por ID
 router.get(
