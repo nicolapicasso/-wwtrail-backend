@@ -317,7 +317,7 @@ export class EditionService {
   }
 
   /**
-   * Obtener edición CON HERENCIA de datos
+   * Obtener edición CON HERENCIA de datos (por ID)
    * Si un campo es NULL en Edition, se usa el valor de Competition
    */
   static async getWithInheritance(id: string) {
@@ -326,23 +326,58 @@ export class EditionService {
     // Aplicar herencia de datos
     return {
       ...edition,
-      
+
       // Si edition.distance es NULL, usar competition.baseDistance
       distance: edition.distance ?? edition.competition.baseDistance,
-      
+
       // Si edition.elevation es NULL, usar competition.baseElevation
       elevation: edition.elevation ?? edition.competition.baseElevation,
-      
+
       // Si edition.maxParticipants es NULL, usar competition.baseMaxParticipants
       maxParticipants: edition.maxParticipants ?? edition.competition.baseMaxParticipants,
-      
+
       // Si edition.city es NULL, usar event.city
       city: edition.city ?? edition.competition.event.city,
-      
+
       // Información adicional útil
       eventName: edition.competition.event.name,
+      eventSlug: edition.competition.event.slug,
       eventCountry: edition.competition.event.country,
       competitionName: edition.competition.name,
+      competitionSlug: edition.competition.slug,
+      competitionType: edition.competition.type,
+    };
+  }
+
+  /**
+   * Obtener edición CON HERENCIA de datos (por SLUG)
+   * Si un campo es NULL en Edition, se usa el valor de Competition
+   */
+  static async getWithInheritanceBySlug(slug: string) {
+    const edition = await this.findBySlug(slug);
+
+    // Aplicar herencia de datos
+    return {
+      ...edition,
+
+      // Si edition.distance es NULL, usar competition.baseDistance
+      distance: edition.distance ?? edition.competition.baseDistance,
+
+      // Si edition.elevation es NULL, usar competition.baseElevation
+      elevation: edition.elevation ?? edition.competition.baseElevation,
+
+      // Si edition.maxParticipants es NULL, usar competition.baseMaxParticipants
+      maxParticipants: edition.maxParticipants ?? edition.competition.baseMaxParticipants,
+
+      // Si edition.city es NULL, usar event.city
+      city: edition.city ?? edition.competition.event.city,
+
+      // Información adicional útil
+      eventName: edition.competition.event.name,
+      eventSlug: edition.competition.event.slug,
+      eventCountry: edition.competition.event.country,
+      competitionName: edition.competition.name,
+      competitionSlug: edition.competition.slug,
       competitionType: edition.competition.type,
     };
   }

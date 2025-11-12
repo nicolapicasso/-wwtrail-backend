@@ -156,7 +156,8 @@ export class EditionController {
 
   /**
    * GET /api/v2/editions/:id/full
-   * Obtener edición con herencia de datos
+   * GET /api/v2/editions/:id/with-inheritance
+   * Obtener edición con herencia de datos (por ID)
    * @auth No requerida
    */
   static async getWithInheritance(req: Request, res: Response, next: NextFunction) {
@@ -164,6 +165,26 @@ export class EditionController {
       const { id } = req.params;
 
       const edition = await EditionService.getWithInheritance(id);
+
+      res.json({
+        status: 'success',
+        data: edition,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v2/editions/slug/:slug/with-inheritance
+   * Obtener edición con herencia de datos (por SLUG)
+   * @auth No requerida
+   */
+  static async getWithInheritanceBySlug(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { slug } = req.params;
+
+      const edition = await EditionService.getWithInheritanceBySlug(slug);
 
       res.json({
         status: 'success',

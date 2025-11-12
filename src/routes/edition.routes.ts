@@ -28,6 +28,7 @@ router.get('/', (req, res) => {
     endpoints: [
       'GET /api/v2/editions/:id',
       'GET /api/v2/editions/slug/:slug',
+      'GET /api/v2/editions/slug/:slug/with-inheritance',
       'GET /api/v2/editions/:id/full',
       'GET /api/v2/editions/:id/with-inheritance',
       'GET /api/v2/editions/:id/stats',
@@ -77,6 +78,13 @@ competitionEditionsRouter.get(
  * RUTAS DIRECTAS DE EDICIONES
  * Montadas en: /api/v2/editions
  */
+
+// GET /api/v2/editions/slug/:slug/with-inheritance - Por slug con herencia
+router.get(
+  '/slug/:slug/with-inheritance',
+  validate(editionSlugSchema),
+  EditionController.getWithInheritanceBySlug
+);
 
 // GET /api/v2/editions/slug/:slug - Por slug (antes de /:id)
 router.get(
