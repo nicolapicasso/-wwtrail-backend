@@ -343,6 +343,7 @@ model Edition {
   blogPosts    Post[]
   ratings      EditionRating[]   @relation("EditionRatings")
   podiums      EditionPodium[]   @relation("EditionPodiums")
+  photos       EditionPhoto[]    @relation("EditionPhotos")
 
   viewCount Int     @default(0)
   featured  Boolean @default(false)
@@ -807,4 +808,35 @@ model EditionPodium {
   @@index([editionId])
   @@index([type])
   @@map("edition_podiums")
+}
+
+// ===================================
+// EDITION PHOTOS - FASE 3
+// ===================================
+
+model EditionPhoto {
+  id String @id @default(uuid())
+
+  editionId String
+  edition   Edition @relation("EditionPhotos", fields: [editionId], references: [id], onDelete: Cascade)
+
+  url        String @db.Text
+  thumbnail  String? @db.Text
+  caption    String? @db.Text
+  photographer String? @db.VarChar(200)
+
+  width    Int?
+  height   Int?
+  fileSize Int?
+  mimeType String? @db.VarChar(50)
+
+  sortOrder  Int     @default(0)
+  isFeatured Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([editionId])
+  @@index([isFeatured])
+  @@map("edition_photos")
 }

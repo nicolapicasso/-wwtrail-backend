@@ -13,6 +13,7 @@ import {
 } from '../schemas/edition.schema';
 import { editionRatingsRouter } from './editionRating.routes';
 import { editionPodiumsRouter, editionChronicleRouter } from './editionPodium.routes';
+import { editionPhotosRouter } from './editionPhoto.routes';
 
 const router = Router();
 console.log('✅ Edition routes file loaded!');
@@ -116,6 +117,14 @@ router.use('/:editionId/podiums', editionPodiumsRouter);
 // PUT /api/v2/editions/:editionId/chronicle
 // GET /api/v2/editions/:editionId/chronicle
 router.use('/:editionId/chronicle', editionChronicleRouter);
+
+// ===================================
+// RUTAS ANIDADAS - PHOTOS
+// ===================================
+// POST /api/v2/editions/:editionId/photos
+// GET  /api/v2/editions/:editionId/photos
+// POST /api/v2/editions/:editionId/photos/reorder
+router.use('/:editionId/photos', editionPhotosRouter);
 
 // GET /api/v2/editions/:id - Por ID
 router.get(
