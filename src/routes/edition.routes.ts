@@ -29,6 +29,7 @@ router.get('/', (req, res) => {
       'GET /api/v2/editions/:id',
       'GET /api/v2/editions/slug/:slug',
       'GET /api/v2/editions/:id/full',
+      'GET /api/v2/editions/:id/with-inheritance',
       'GET /api/v2/editions/:id/stats',
       'PUT /api/v2/editions/:id (auth)',
       'DELETE /api/v2/editions/:id (auth)',
@@ -87,6 +88,13 @@ router.get(
 // GET /api/v2/editions/:id/full - Con herencia de datos
 router.get(
   '/:id/full',
+  validate(editionIdSchema),
+  EditionController.getWithInheritance
+);
+
+// GET /api/v2/editions/:id/with-inheritance - Alias para frontend
+router.get(
+  '/:id/with-inheritance',
   validate(editionIdSchema),
   EditionController.getWithInheritance
 );
