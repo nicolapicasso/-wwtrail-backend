@@ -191,9 +191,11 @@ export class EditionService {
         },
         _count: {
           select: {
-            participants: true,
-            results: true,
-            reviews: true,
+            ratings: true,
+            podiums: true,
+            photos: true,
+            userEditions: true,
+            blogPosts: true,
           },
         },
       },
@@ -224,9 +226,11 @@ export class EditionService {
         },
         _count: {
           select: {
-            participants: true,
-            results: true,
-            reviews: true,
+            ratings: true,
+            podiums: true,
+            photos: true,
+            userEditions: true,
+            blogPosts: true,
           },
         },
       },
@@ -261,9 +265,11 @@ export class EditionService {
         },
         _count: {
           select: {
-            participants: true,
-            results: true,
-            reviews: true,
+            ratings: true,
+            podiums: true,
+            photos: true,
+            userEditions: true,
+            blogPosts: true,
           },
         },
       },
@@ -293,9 +299,11 @@ export class EditionService {
         },
         _count: {
           select: {
-            participants: true,
-            results: true,
-            reviews: true,
+            ratings: true,
+            podiums: true,
+            photos: true,
+            userEditions: true,
+            blogPosts: true,
           },
         },
       },
@@ -433,8 +441,11 @@ export class EditionService {
         },
         _count: {
           select: {
-            participants: true,
-            results: true,
+            ratings: true,
+            podiums: true,
+            photos: true,
+            userEditions: true,
+            blogPosts: true,
           },
         },
       },
@@ -455,9 +466,10 @@ export class EditionService {
     }
 
     // Advertir si tiene datos
-    if (existing._count.participants > 0 || existing._count.results > 0) {
+    const totalData = existing._count.ratings + existing._count.podiums + existing._count.photos + existing._count.userEditions + existing._count.blogPosts;
+    if (totalData > 0) {
       logger.warn(
-        `Deleting edition ${id} with ${existing._count.participants} participants and ${existing._count.results} results`
+        `Deleting edition ${id} with ${existing._count.ratings} ratings, ${existing._count.podiums} podiums, ${existing._count.photos} photos, ${existing._count.userEditions} user editions, and ${existing._count.blogPosts} blog posts`
       );
     }
 
@@ -486,9 +498,11 @@ export class EditionService {
         },
         _count: {
           select: {
-            participants: true,
-            results: true,
-            reviews: true,
+            ratings: true,
+            podiums: true,
+            photos: true,
+            userEditions: true,
+            blogPosts: true,
           },
         },
       },
@@ -498,24 +512,16 @@ export class EditionService {
       throw new Error('Edition not found');
     }
 
-    // Calcular rating promedio
-    const reviews = await prisma.review.findMany({
-      where: { editionId: id },
-      select: { rating: true },
-    });
-
-    const averageRating = reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : null;
-
     return {
       id: edition.id,
       competitionName: edition.competition.name,
       year: edition.year,
-      totalParticipants: edition._count.participants,
-      totalResults: edition._count.results,
-      totalReviews: edition._count.reviews,
-      averageRating,
+      totalRatings: edition._count.ratings,
+      totalPodiums: edition._count.podiums,
+      totalPhotos: edition._count.photos,
+      totalUserEditions: edition._count.userEditions,
+      totalBlogPosts: edition._count.blogPosts,
+      averageRating: edition.avgRating,
       currentParticipants: edition.currentParticipants,
       maxParticipants: edition.maxParticipants,
       status: edition.status,
