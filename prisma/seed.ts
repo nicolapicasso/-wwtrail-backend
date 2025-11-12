@@ -8,6 +8,7 @@ async function main() {
 
   // Limpiar base de datos
   console.log('🧹 Cleaning database...');
+  await prisma.editionRating.deleteMany();
   await prisma.userEdition.deleteMany();
   await prisma.userCompetition.deleteMany();
   await prisma.review.deleteMany();
@@ -19,6 +20,179 @@ async function main() {
   await prisma.event.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.competitionType.deleteMany();
+  await prisma.terrainType.deleteMany();
+  await prisma.specialSeries.deleteMany();
+
+  // ===================================
+  // 0. CREAR CATÁLOGOS - FASE 1
+  // ===================================
+  console.log('📚 Creating catalogs...');
+
+  // Competition Types
+  const skyRunning = await prisma.competitionType.create({
+    data: {
+      name: 'Sky Running',
+      slug: 'sky-running',
+      description: 'Carreras de montaña de alta dificultad técnica, normalmente por encima de 2000m',
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
+  const ultraTrail = await prisma.competitionType.create({
+    data: {
+      name: 'Ultra Trail',
+      slug: 'ultra-trail',
+      description: 'Carreras de ultra distancia (>42km) por senderos de montaña',
+      sortOrder: 2,
+      isActive: true,
+    },
+  });
+
+  const trailRunning = await prisma.competitionType.create({
+    data: {
+      name: 'Trail Running',
+      slug: 'trail-running',
+      description: 'Carreras por senderos de montaña de distancia media',
+      sortOrder: 3,
+      isActive: true,
+    },
+  });
+
+  const verticalKilometer = await prisma.competitionType.create({
+    data: {
+      name: 'Vertical Kilometer',
+      slug: 'vertical-kilometer',
+      description: 'Carreras verticales de 1000m+ de desnivel en menos de 5km',
+      sortOrder: 4,
+      isActive: true,
+    },
+  });
+
+  const trailUnmarked = await prisma.competitionType.create({
+    data: {
+      name: 'Trail sin marcar',
+      slug: 'trail-sin-marcar',
+      description: 'Carreras de orientación por terreno no marcado',
+      sortOrder: 5,
+      isActive: true,
+    },
+  });
+
+  const canicross = await prisma.competitionType.create({
+    data: {
+      name: 'Canicross',
+      slug: 'canicross',
+      description: 'Carreras con perros en trail',
+      sortOrder: 6,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Created ${6} competition types`);
+
+  // Terrain Types
+  const mountainTechnical = await prisma.terrainType.create({
+    data: {
+      name: 'Montaña técnica',
+      slug: 'montana-tecnica',
+      description: 'Terreno de alta montaña con pasajes técnicos',
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
+  const mountainMedium = await prisma.terrainType.create({
+    data: {
+      name: 'Montaña media',
+      slug: 'montana-media',
+      description: 'Montaña de altitud media sin pasajes técnicos',
+      sortOrder: 2,
+      isActive: true,
+    },
+  });
+
+  const forestTrails = await prisma.terrainType.create({
+    data: {
+      name: 'Senderos boscosos',
+      slug: 'senderos-boscosos',
+      description: 'Senderos por bosques y zonas arboladas',
+      sortOrder: 3,
+      isActive: true,
+    },
+  });
+
+  const desert = await prisma.terrainType.create({
+    data: {
+      name: 'Desierto',
+      slug: 'desierto',
+      description: 'Terreno desértico o semidesértico',
+      sortOrder: 4,
+      isActive: true,
+    },
+  });
+
+  const mixed = await prisma.terrainType.create({
+    data: {
+      name: 'Mixto asfalto/sendero',
+      slug: 'mixto-asfalto-sendero',
+      description: 'Combinación de asfalto y senderos',
+      sortOrder: 5,
+      isActive: true,
+    },
+  });
+
+  const highMountain = await prisma.terrainType.create({
+    data: {
+      name: 'Alta montaña',
+      slug: 'alta-montana',
+      description: 'Terreno de alta montaña por encima de 3000m',
+      sortOrder: 6,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Created ${6} terrain types`);
+
+  // Special Series
+  const goldenTrail = await prisma.specialSeries.create({
+    data: {
+      name: 'Golden Trail Series',
+      slug: 'golden-trail-series',
+      logoUrl: 'https://www.goldentrailseries.com/images/logo.png',
+      websiteUrl: 'https://www.goldentrailseries.com',
+      description: 'Serie mundial de carreras de skyrunning',
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
+  const utmbWorld = await prisma.specialSeries.create({
+    data: {
+      name: 'UTMB World Series',
+      slug: 'utmb-world-series',
+      logoUrl: 'https://utmb.world/images/logo.png',
+      websiteUrl: 'https://utmb.world',
+      description: 'Serie mundial de ultra trails',
+      sortOrder: 2,
+      isActive: true,
+    },
+  });
+
+  const skyrunnerWorld = await prisma.specialSeries.create({
+    data: {
+      name: 'Skyrunner World Series',
+      slug: 'skyrunner-world-series',
+      logoUrl: 'https://www.skyrunner.com/images/logo.png',
+      websiteUrl: 'https://www.skyrunner.com',
+      description: 'Serie mundial de skyrunning',
+      sortOrder: 3,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Created ${3} special series\n`);
 
   // 1. CREAR USUARIOS
   console.log('👤 Creating users...');

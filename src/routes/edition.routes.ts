@@ -11,6 +11,7 @@ import {
   editionByYearSchema,
   createBulkEditionsSchema,
 } from '../schemas/edition.schema';
+import { editionRatingsRouter } from './editionRating.routes';
 
 const router = Router();
 console.log('✅ Edition routes file loaded!');
@@ -93,6 +94,13 @@ router.get(
   validate(editionIdSchema),
   EditionController.getStats
 );
+
+// ===================================
+// RUTAS ANIDADAS - RATINGS
+// ===================================
+// POST /api/v2/editions/:editionId/ratings
+// GET  /api/v2/editions/:editionId/ratings
+router.use('/:editionId/ratings', editionRatingsRouter);
 
 // GET /api/v2/editions/:id - Por ID
 router.get(

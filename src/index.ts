@@ -26,6 +26,8 @@ import eventRoutes from './routes/event.routes';
 import editionRoutes from './routes/edition.routes';
 import meCompetitionsRoutes from './routes/me-competitions.routes';
 import fileRoutes from './routes/file.routes'; // ✅ AGREGAR AQUÍ
+import editionRatingRoutes from './routes/editionRating.routes';
+import catalogRoutes from './routes/catalog.routes';
 
 dotenv.config();
 
@@ -132,6 +134,9 @@ app.use('/api/v1/files', fileRoutes);
 app.use('/api/v2/events', eventRoutes);
 app.use('/api/v2/competitions', competitionRoutes);
 app.use('/api/v2/editions', editionRoutes);
+app.use('/api/v2/ratings', editionRatingRoutes);
+app.use('/api/v2/me/ratings', editionRatingRoutes);
+app.use('/api/v2', catalogRoutes);
 
 // ============================================
 // ERROR HANDLERS

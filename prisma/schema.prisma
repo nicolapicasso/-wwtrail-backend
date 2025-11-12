@@ -99,6 +99,13 @@ enum PostStatus {
   ARCHIVED
 }
 
+enum PodiumType {
+  GENERAL
+  MALE
+  FEMALE
+  CATEGORY
+}
+
 // ===================================
 // USER & AUTH
 // ===================================
@@ -132,6 +139,7 @@ model User {
   userEditions          UserEdition[]
   userCompetitions      UserCompetition[]
   blogPosts             Post[]
+  ratings               EditionRating[]   @relation("UserRatings")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -197,6 +205,19 @@ model Event {
   typicalMonth     Int? // 1-12 para ordenar/filtrar
   firstEditionYear Int // Año de primera edición
 
+  // ✅ NUEVOS CAMPOS - FASE 1
+  competitionTypeId String?
+  competitionType   CompetitionType? @relation(fields: [competitionTypeId], references: [id], onDelete: SetNull)
+
+  terrainTypeId String?
+  terrainType   TerrainType? @relation(fields: [terrainTypeId], references: [id], onDelete: SetNull)
+
+  specialSeriesId String?
+  specialSeries   SpecialSeries? @relation(fields: [specialSeriesId], references: [id], onDelete: SetNull)
+
+  itraPoints Int?
+  utmbPoints Int?
+
   // Relaciones
   competitions Competition[]
 
@@ -212,6 +233,9 @@ model Event {
   @@index([status])
   @@index([organizerId])
   @@index([typicalMonth])
+  @@index([competitionTypeId])
+  @@index([terrainTypeId])
+  @@index([specialSeriesId])
   @@map("events")
 }
 
@@ -306,10 +330,15 @@ model Edition {
   regulations String? @db.Text
   notes       String? @db.Text
 
+  // ✅ NUEVOS CAMPOS - FASE 1: Ratings
+  avgRating    Float? // Promedio de los 7 criterios
+  totalRatings Int    @default(0)
+
   // Relaciones
-  competition  Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competition  Competition     @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   userEditions UserEdition[]
   blogPosts    Post[]
+  ratings      EditionRating[] @relation("EditionRatings")
 
   viewCount Int     @default(0)
   featured  Boolean @default(false)
@@ -322,6 +351,7 @@ model Edition {
   @@index([year])
   @@index([status])
   @@index([startDate])
+  @@index([avgRating])
   @@map("editions")
 }
 
@@ -648,4 +678,97 @@ model PostTag {
   posts Post[]
 
   @@map("post_tags")
+}
+
+// ===================================
+// CATÁLOGOS - FASE 1
+// ===================================
+
+model CompetitionType {
+  id          String  @id @default(uuid())
+  name        String  @unique @db.VarChar(100)
+  slug        String  @unique @db.VarChar(100)
+  description String? @db.Text
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("competition_types")
+}
+
+model TerrainType {
+  id          String  @id @default(uuid())
+  name        String  @unique @db.VarChar(100)
+  slug        String  @unique @db.VarChar(100)
+  description String? @db.Text
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("terrain_types")
+}
+
+model SpecialSeries {
+  id          String  @id @default(uuid())
+  name        String  @unique @db.VarChar(100)
+  slug        String  @unique @db.VarChar(100)
+  logoUrl     String? @db.Text
+  websiteUrl  String? @db.Text
+  description String? @db.Text
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("special_series")
+}
+
+// ===================================
+// EDITION RATINGS - FASE 1
+// ===================================
+
+model EditionRating {
+  id String @id @default(uuid())
+
+  editionId String
+  edition   Edition @relation("EditionRatings", fields: [editionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("UserRatings", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 7 Criterios (1-4 estrellas cada uno)
+  ratingInfoBriefing Int @db.SmallInt // 1-4
+  ratingRacePack     Int @db.SmallInt // 1-4
+  ratingVillage      Int @db.SmallInt // 1-4
+  ratingMarking      Int @db.SmallInt // 1-4
+  ratingAid          Int @db.SmallInt // 1-4
+  ratingFinisher     Int @db.SmallInt // 1-4
+  ratingEco          Int @db.SmallInt // 1-4
+
+  comment String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([editionId, userId])
+  @@index([editionId])
+  @@index([userId])
+  @@map("edition_ratings")
 }
