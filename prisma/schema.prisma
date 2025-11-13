@@ -260,6 +260,9 @@ model Competition {
   coverImage String?  @db.Text // Imagen de cabecera/hero
   gallery    String[] // Array de URLs para galería
 
+  // Orden de visualización
+  displayOrder Int @default(0)
+
   // Meta
   organizerId String
   organizer   User        @relation("CompetitionOrganizer", fields: [organizerId], references: [id])

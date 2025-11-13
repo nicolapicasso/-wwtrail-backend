@@ -92,8 +92,20 @@ export class CompetitionService {
         baseDistance: data.baseDistance,
         baseElevation: data.baseElevation,
         baseMaxParticipants: data.baseMaxParticipants,
+
+        // Imágenes
+        logoUrl: data.logoUrl,
+        coverImage: data.coverImage,
+        gallery: data.gallery || [],
+
+        // Estado
+        status: data.status || EventStatus.DRAFT,
+        featured: data.featured || false,
+
+        // Orden
+        displayOrder: data.displayOrder,
+
         organizerId: userId,
-        status: EventStatus.PUBLISHED,
       },
       include: {
         event: {
@@ -309,6 +321,18 @@ export class CompetitionService {
         baseDistance: data.baseDistance,
         baseElevation: data.baseElevation,
         baseMaxParticipants: data.baseMaxParticipants,
+
+        // Imágenes
+        logoUrl: data.logoUrl,
+        coverImage: data.coverImage,
+        gallery: data.gallery,
+
+        // Estado
+        status: data.status,
+        featured: data.featured,
+
+        // Orden
+        displayOrder: data.displayOrder,
       },
       include: {
         event: {
