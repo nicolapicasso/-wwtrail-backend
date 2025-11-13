@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { prisma } from '../config/database';
+import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 
 // Interfaz para los datos del clima
@@ -134,7 +134,7 @@ export class WeatherService {
         year: true,
         slug: true,
         startDate: true,
-        location: true,
+        city: true,
         weather: true,
         weatherFetched: true,
         competition: {
@@ -147,7 +147,8 @@ export class WeatherService {
                 id: true,
                 name: true,
                 slug: true,
-                location: true,
+                city: true,
+                country: true,
               },
             },
           },
@@ -165,6 +166,7 @@ export class WeatherService {
         year: edition.year,
         slug: edition.slug,
         startDate: edition.startDate,
+        city: edition.city || edition.competition.event.city,
         competition: edition.competition,
       },
       weather: edition.weather as EditionWeather | null,
@@ -176,13 +178,25 @@ export class WeatherService {
    * Fetch y guardar clima de una edición
    */
   static async fetchWeatherForEdition(editionId: string, force: boolean = false) {
-    // Obtener edición con datos de ubicación
+    // Obtener edición con datos básicos
     const edition = await prisma.edition.findUnique({
       where: { id: editionId },
-      include: {
+      select: {
+        id: true,
+        startDate: true,
+        weatherFetched: true,
         competition: {
-          include: {
-            event: true,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            event: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
       },
@@ -205,33 +219,51 @@ export class WeatherService {
       throw new AppError('Cannot fetch weather for future editions', 400);
     }
 
-    // Obtener coordenadas (de Edition o Event)
-    let latitude: number;
-    let longitude: number;
+    // Obtener coordenadas (primero de Edition, luego de Event)
+    let latitude: number | null = null;
+    let longitude: number | null = null;
 
-    if (edition.location) {
-      // Parsear geometría PostGIS
-      // Formato: POINT(longitude latitude)
-      const locationStr = edition.location.toString();
-      const match = locationStr.match(/POINT\(([0-9.-]+)\s+([0-9.-]+)\)/);
-      if (match) {
-        longitude = parseFloat(match[1]);
-        latitude = parseFloat(match[2]);
-      } else {
-        throw new AppError('Invalid edition location format', 500);
+    // Intentar obtener coordenadas de la edición
+    try {
+      const editionCoords = await prisma.$queryRawUnsafe<Array<{ lat: number; lon: number }>>(
+        `SELECT ST_Y(location::geometry) as lat, ST_X(location::geometry) as lon
+         FROM editions
+         WHERE id::text = $1 AND location IS NOT NULL`,
+        editionId
+      );
+
+      if (editionCoords.length > 0) {
+        latitude = editionCoords[0].lat;
+        longitude = editionCoords[0].lon;
       }
-    } else if (edition.competition.event.location) {
-      // Usar ubicación del evento
-      const locationStr = edition.competition.event.location.toString();
-      const match = locationStr.match(/POINT\(([0-9.-]+)\s+([0-9.-]+)\)/);
-      if (match) {
-        longitude = parseFloat(match[1]);
-        latitude = parseFloat(match[2]);
-      } else {
-        throw new AppError('Invalid event location format', 500);
+    } catch (error) {
+      // Si falla, continuamos para intentar con Event
+    }
+
+    // Si no hay coordenadas en Edition, usar las del Event
+    if (latitude === null || longitude === null) {
+      try {
+        const eventCoords = await prisma.$queryRawUnsafe<Array<{ lat: number; lon: number }>>(
+          `SELECT ST_Y(e.location::geometry) as lat, ST_X(e.location::geometry) as lon
+           FROM events e
+           JOIN competitions c ON c."eventId" = e.id
+           JOIN editions ed ON ed."competitionId" = c.id
+           WHERE ed.id::text = $1 AND e.location IS NOT NULL`,
+          editionId
+        );
+
+        if (eventCoords.length > 0) {
+          latitude = eventCoords[0].lat;
+          longitude = eventCoords[0].lon;
+        }
+      } catch (error) {
+        // Sin coordenadas disponibles
       }
-    } else {
-      throw new AppError('No location data available for this edition', 400);
+    }
+
+    // Validar que tenemos coordenadas
+    if (latitude === null || longitude === null) {
+      throw new AppError('No location coordinates available for this edition', 400);
     }
 
     // Formatear fecha para la API
