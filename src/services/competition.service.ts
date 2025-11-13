@@ -163,6 +163,7 @@ export class CompetitionService {
             country: true,
             city: true,
             organizerId: true,
+            logoUrl: true,
           },
         },
         editions: {
@@ -189,6 +190,24 @@ export class CompetitionService {
       throw new Error('Competition not found');
     }
 
+    // Extraer coordenadas PostGIS del Event
+    try {
+      const coordinates = await prisma.$queryRawUnsafe<Array<{ lat: number; lon: number }>>(
+        `SELECT ST_Y(location::geometry) as lat, ST_X(location::geometry) as lon
+         FROM events
+         WHERE id::text = $1 AND location IS NOT NULL`,
+        competition.event.id
+      );
+
+      if (coordinates.length > 0) {
+        // Añadir coordenadas al objeto event
+        (competition.event as any).latitude = coordinates[0].lat;
+        (competition.event as any).longitude = coordinates[0].lon;
+      }
+    } catch (error) {
+      // Si falla, continuar sin coordenadas
+    }
+
     return competition;
   }
 
@@ -206,6 +225,8 @@ export class CompetitionService {
             slug: true,
             country: true,
             city: true,
+            organizerId: true,
+            logoUrl: true,
           },
         },
         editions: {
@@ -230,6 +251,24 @@ export class CompetitionService {
 
     if (!competition) {
       throw new Error('Competition not found');
+    }
+
+    // Extraer coordenadas PostGIS del Event
+    try {
+      const coordinates = await prisma.$queryRawUnsafe<Array<{ lat: number; lon: number }>>(
+        `SELECT ST_Y(location::geometry) as lat, ST_X(location::geometry) as lon
+         FROM events
+         WHERE id::text = $1 AND location IS NOT NULL`,
+        competition.event.id
+      );
+
+      if (coordinates.length > 0) {
+        // Añadir coordenadas al objeto event
+        (competition.event as any).latitude = coordinates[0].lat;
+        (competition.event as any).longitude = coordinates[0].lon;
+      }
+    } catch (error) {
+      // Si falla, continuar sin coordenadas
     }
 
     return competition;
