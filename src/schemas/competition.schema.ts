@@ -17,13 +17,21 @@ export const createCompetitionSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
     description: z.string().optional(),
     type: z.nativeEnum(RaceType),
-    
+
     // Datos base que heredarán las editions
     baseDistance: z.number().positive('Distance must be positive').optional(),
     baseElevation: z.number().int().optional(),
     baseMaxParticipants: z.number().int().positive('Max participants must be positive').optional(),
-    basePrice: z.number().positive('Price must be positive').optional(),
-    
+
+    // Imágenes
+    logoUrl: z.string().url('Invalid logo URL').optional().or(z.literal('')),
+    coverImage: z.string().url('Invalid cover image URL').optional().or(z.literal('')),
+    gallery: z.array(z.string().url('Invalid gallery image URL')).optional(),
+
+    // Estado
+    status: z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED']).optional(),
+    featured: z.boolean().optional(),
+
     // Orden de visualización
     displayOrder: z.number().int().min(0).optional(),
   }),
@@ -43,12 +51,20 @@ export const updateCompetitionSchema = z.object({
     name: z.string().min(3).optional(),
     description: z.string().optional(),
     type: z.nativeEnum(RaceType).optional(),
-    
+
     baseDistance: z.number().positive().optional(),
     baseElevation: z.number().int().optional(),
     baseMaxParticipants: z.number().int().positive().optional(),
-    basePrice: z.number().positive().optional(),
-    
+
+    // Imágenes
+    logoUrl: z.string().url('Invalid logo URL').optional().or(z.literal('')),
+    coverImage: z.string().url('Invalid cover image URL').optional().or(z.literal('')),
+    gallery: z.array(z.string().url('Invalid gallery image URL')).optional(),
+
+    // Estado
+    status: z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED']).optional(),
+    featured: z.boolean().optional(),
+
     displayOrder: z.number().int().min(0).optional(),
   }),
 });

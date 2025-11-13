@@ -69,27 +69,38 @@ export class EditionService {
         competitionId,
         year: data.year,
         slug,
-        
-        // Datos específicos (si no se proveen, se heredarán en getWithInheritance)
+
+        // Fechas
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
         registrationOpenDate: data.registrationOpenDate ? new Date(data.registrationOpenDate) : undefined,
         registrationCloseDate: data.registrationCloseDate ? new Date(data.registrationCloseDate) : undefined,
-        
+        registrationUrl: data.registrationUrl,
+
+        // Datos específicos (heredables)
         distance: data.distance,
         elevation: data.elevation,
         maxParticipants: data.maxParticipants,
         currentParticipants: data.currentParticipants || 0,
-        
-        price: data.price,
-        
+
+        // Precios (JSON)
+        prices: data.prices,
+
+        // Ubicación
         city: data.city,
-        
+
+        // Imágenes
+        coverImage: data.coverImage,
+        gallery: data.gallery || [],
+
+        // Estado
         status: data.status || 'UPCOMING',
         registrationStatus: data.registrationStatus || 'NOT_OPEN',
-        
+        featured: data.featured || false,
+
+        // Textos
+        regulations: data.regulations,
         notes: data.notes,
-        
       },
       include: {
         competition: {

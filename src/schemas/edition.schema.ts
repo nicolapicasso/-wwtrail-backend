@@ -15,26 +15,41 @@ export const createEditionSchema = z.object({
   }),
   body: z.object({
     year: z.number().int().min(1900).max(2100),
-    
-    // Fechas opcionales
+
+    // Fechas
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
     registrationOpenDate: z.string().datetime().optional(),
     registrationCloseDate: z.string().datetime().optional(),
-    
+    registrationUrl: z.string().url('Invalid registration URL').optional().or(z.literal('')),
+
     // Datos específicos (si no se proveen, se heredan de Competition)
     distance: z.number().positive().optional(),
     elevation: z.number().int().optional(),
     maxParticipants: z.number().int().positive().optional(),
     currentParticipants: z.number().int().min(0).optional(),
-    
-    price: z.number().positive().optional(),
-    
+
+    // Precios (estructura JSON)
+    prices: z.object({
+      early: z.number().positive().optional(),
+      normal: z.number().positive().optional(),
+      late: z.number().positive().optional(),
+    }).optional(),
+
+    // Ubicación
     city: z.string().optional(),
-    
+
+    // Imágenes
+    coverImage: z.string().url('Invalid cover image URL').optional().or(z.literal('')),
+    gallery: z.array(z.string().url('Invalid gallery image URL')).optional(),
+
+    // Estado
     status: z.nativeEnum(EditionStatus).optional(),
     registrationStatus: z.nativeEnum(RegistrationStatus).optional(),
-    
+    featured: z.boolean().optional(),
+
+    // Textos largos
+    regulations: z.string().optional(),
     notes: z.string().optional(),
   }),
 });
@@ -51,24 +66,41 @@ export const updateEditionSchema = z.object({
   }),
   body: z.object({
     year: z.number().int().min(1900).max(2100).optional(),
-    
+
+    // Fechas
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
     registrationOpenDate: z.string().datetime().optional(),
     registrationCloseDate: z.string().datetime().optional(),
-    
+    registrationUrl: z.string().url('Invalid registration URL').optional().or(z.literal('')),
+
+    // Datos específicos
     distance: z.number().positive().optional(),
     elevation: z.number().int().optional(),
     maxParticipants: z.number().int().positive().optional(),
     currentParticipants: z.number().int().min(0).optional(),
-    
-    price: z.number().positive().optional(),
-    
+
+    // Precios (estructura JSON)
+    prices: z.object({
+      early: z.number().positive().optional(),
+      normal: z.number().positive().optional(),
+      late: z.number().positive().optional(),
+    }).optional(),
+
+    // Ubicación
     city: z.string().optional(),
-    
+
+    // Imágenes
+    coverImage: z.string().url('Invalid cover image URL').optional().or(z.literal('')),
+    gallery: z.array(z.string().url('Invalid gallery image URL')).optional(),
+
+    // Estado
     status: z.nativeEnum(EditionStatus).optional(),
     registrationStatus: z.nativeEnum(RegistrationStatus).optional(),
-    
+    featured: z.boolean().optional(),
+
+    // Textos largos
+    regulations: z.string().optional(),
     notes: z.string().optional(),
   }),
 });
