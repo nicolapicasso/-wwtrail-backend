@@ -43,6 +43,19 @@ export class CompetitionController {
       const userId = req.user!.id;
       const data = req.body;
 
+      // DEBUG: Log incoming data
+      console.log('=== COMPETITION CREATE DEBUG ===');
+      console.log('Full body:', JSON.stringify(data, null, 2));
+      console.log('Image fields:', {
+        logoUrl: data.logoUrl,
+        coverImage: data.coverImage,
+        gallery: data.gallery,
+        status: data.status,
+        featured: data.featured,
+        displayOrder: data.displayOrder,
+      });
+      console.log('===============================');
+
       const competition = await CompetitionService.create(eventId, data, userId);
 
       res.status(201).json({
@@ -126,6 +139,20 @@ export class CompetitionController {
       const { id } = req.params;
       const userId = req.user!.id;
       const data = req.body;
+
+      // DEBUG: Log incoming data
+      console.log('=== COMPETITION UPDATE DEBUG ===');
+      console.log('Competition ID:', id);
+      console.log('Full body:', JSON.stringify(data, null, 2));
+      console.log('Image fields:', {
+        logoUrl: data.logoUrl,
+        coverImage: data.coverImage,
+        gallery: data.gallery,
+        status: data.status,
+        featured: data.featured,
+        displayOrder: data.displayOrder,
+      });
+      console.log('===============================');
 
       const competition = await CompetitionService.update(id, data, userId);
 
